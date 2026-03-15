@@ -2,7 +2,12 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 import { errorHandler } from "./middlewares/errorHandler.js";
+
+//Import Routes
+import authRoutes from './routes/auth.routes.js';
+
 
 const app = express();
 app.use(
@@ -13,6 +18,7 @@ app.use(
 );
 app.use(morgan("dev"));
 app.use(express.json());
+app.use(cookieParser())
 app.use(helmet());
 
 app.get("/health", (req, res) => {
@@ -21,6 +27,9 @@ app.get("/health", (req, res) => {
     message: "Server is healthy",
   });
 });
+// Mount Routes
+app.use('/api/auth', authRoutes);
+
 
 app.use(errorHandler);
 
