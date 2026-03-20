@@ -76,3 +76,14 @@ export const logout = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Get current logged in user
+// @route   GET /api/auth/me
+// @access  Private
+export const getMe = async (req, res, next) => {
+  try {
+    res.status(200).json({ success: true, data: req.user });
+  } catch (error) {
+    next(error);
+  }
+};
