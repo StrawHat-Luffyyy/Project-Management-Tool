@@ -6,8 +6,8 @@ import cookieParser from "cookie-parser";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
 //Import Routes
-import authRoutes from './routes/auth.routes.js';
-
+import authRoutes from "./routes/auth.routes.js";
+import workspaceRoutes from "./routes/workspace.route.js";
 
 const app = express();
 app.use(
@@ -18,7 +18,7 @@ app.use(
 );
 app.use(morgan("dev"));
 app.use(express.json());
-app.use(cookieParser())
+app.use(cookieParser());
 app.use(helmet());
 
 app.get("/health", (req, res) => {
@@ -28,8 +28,8 @@ app.get("/health", (req, res) => {
   });
 });
 // Mount Routes
-app.use('/api/auth', authRoutes);
-
+app.use("/api/auth", authRoutes);
+app.use("/api/workspaces", workspaceRoutes);
 
 app.use(errorHandler);
 

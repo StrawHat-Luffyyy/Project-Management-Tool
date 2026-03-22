@@ -44,7 +44,7 @@ export const login = async (req, res, next) => {
         .status(401)
         .json({ success: false, error: "Please provide email and password" });
     }
-    const user = await prisma.user.findUnique({ where: email });
+    const user = await prisma.user.findUnique({ where: {email} });
     if (!user) {
       return res
         .status(401)

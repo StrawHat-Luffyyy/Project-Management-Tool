@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { prisma } from "../config/db.js";
 
-export const protect = (req, res, next) => {
+export const protect = async (req, res, next) => {
   let token;
   if (req.cookies && req.cookies.token) {
     token = req.cookies.token;
@@ -11,7 +11,7 @@ export const protect = (req, res, next) => {
   }
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: {
         id: decoded.id,
       },
