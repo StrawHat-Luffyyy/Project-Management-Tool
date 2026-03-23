@@ -8,6 +8,8 @@ import { errorHandler } from "./middlewares/errorHandler.js";
 //Import Routes
 import authRoutes from "./routes/auth.routes.js";
 import workspaceRoutes from "./routes/workspace.route.js";
+import projectRoutes from './routes/project.routes.js';
+import sprintRoutes from './routes/sprint.routes.js';
 
 const app = express();
 app.use(
@@ -30,7 +32,10 @@ app.get("/health", (req, res) => {
 // Mount Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/workspaces", workspaceRoutes);
+app.use('/api/projects', projectRoutes);
+app.use('/api/sprints', sprintRoutes);
 
+// Error Handler
 app.use(errorHandler);
 
 export default app;
