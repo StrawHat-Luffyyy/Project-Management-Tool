@@ -8,17 +8,19 @@ import { sendTokenResponse } from "../utils/jwt.js";
 export const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
-    //1. Check if the user exists
+    if (!name || !email || !password) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Please provide all fields" });
+    }
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       return res
         .status(400)
         .json({ success: false, error: "Email already in use" });
     }
-    //2. Hash Password
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
-    //3. Create User
     const user = await prisma.user.create({
       data: {
         name,
@@ -26,7 +28,6 @@ export const register = async (req, res, next) => {
         passwordHash,
       },
     });
-    //4. Send Response with cookie
     sendTokenResponse(user, 201, res);
   } catch (error) {
     next(error);
@@ -44,7 +45,7 @@ export const login = async (req, res, next) => {
         .status(401)
         .json({ success: false, error: "Please provide email and password" });
     }
-    const user = await prisma.user.findUnique({ where: {email} });
+    const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       return res
         .status(401)

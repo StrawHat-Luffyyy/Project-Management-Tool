@@ -25,7 +25,7 @@ export const sendTokenResponse = (user, statusCode, res) => {
     id: user.id,
     name: user.name,
     email: user.email,
-    avatarUrl: user.avatarUrl,
+    avatarUrl: user?.avatarUrl,
   };
   res
     .status(statusCode)
