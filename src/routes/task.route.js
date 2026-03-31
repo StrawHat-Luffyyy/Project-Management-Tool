@@ -3,6 +3,7 @@ import {
   createTask,
   getTasks,
   updateTask,
+  reorderTask,
 } from "../controllers/task.controller.js";
 import { protect } from "../middlewares/auth.middleware.js";
 
@@ -14,4 +15,5 @@ router.route("/").post(createTask).get(getTasks);
 
 router.route("/:taskId").patch(updateTask);
 
+router.patch("/:taskId/reorder", reorderTask);
 export default router;

@@ -1,4 +1,5 @@
 import { prisma } from "../config/db.js";
+import { redisClient } from "../config/redis.js";
 
 // @desc    Create a new task (issue)
 // @route   POST /api/tasks
@@ -71,71 +72,44 @@ export const createTask = async (req, res, next) => {
   }
 };
 
-// @desc    Get tasks with filtering and pagination
+// @desc    Get tasks with filtering, pagination, AND REDIS CACHING
 // @route   GET /api/tasks
 // @access  Private
 export const getTasks = async (req, res, next) => {
   try {
-    const {
-      projectId,
-      sprintId,
-      assigneeId,
-      status,
-      page = 1,
-      limit = 10,
-    } = req.query;
+    const { projectId, sprintId, status } = req.query;
     if (!projectId) {
       return res
         .status(400)
         .json({ success: false, error: "Project ID is required" });
     }
-    const whereClause = {
-      projectId: projectId,
-    };
+    // Define a unique cache key for this exact query
+    const cacheKey = `tasks:project:${projectId}${sprintId ? `:sprint:${sprintId}` : ""}`;
+    // Check Redis First
+    const cachedTasks = await redisClient.get(cacheKey);
+    if (cachedTasks) {
+      console.log("Serving from Redis Cache for key:", cacheKey);
+      return res.status(200).json(JSON.parse(cachedTasks));
+    }
+    console.log("Serving from PostgreSQL Database for projectId:", projectId);
+    // If not in cache, hit the database
+    const whereClause = { projectId };
     if (sprintId) whereClause.sprintId = sprintId;
-    if (assigneeId) whereClause.assigneeId = assigneeId;
     if (status !== undefined) whereClause.status = status;
-
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const take = parseInt(limit);
-
-    const [tasks, total] = await prisma.$transaction([
-      prisma.task.findMany({
-        where: whereClause,
-        orderBy: {
-          listOrder: "asc",
-        },
-        skip,
-        take,
-        include: {
-          assignee: {
-            select: {
-              id: true,
-              name: true,
-              avatarUrl: true,
-            },
-          },
-          reporter: {
-            select: {
-              id: true,
-              name: true,
-              avatarUrl: true,
-            },
-          },
-        },
-      }),
-      prisma.task.count({
-        where: whereClause,
-      }),
-    ]);
-    res.status(200).json({
+    const tasks = await prisma.task.findMany({
+      where: whereClause,
+      orderBy: { listOrder: "asc" },
+      include: {
+        assignee: { select: { id: true, name: true, avatarUrl: true } },
+      },
+    });
+    const responseData = {
       success: true,
       count: tasks.length,
-      total,
-      totalPages: Math.ceil(total / take),
-      currentPage: parseInt(page),
       data: tasks,
-    });
+    };
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(responseData));
+    res.status(200).json(responseData);
   } catch (error) {
     next(error);
   }
@@ -161,6 +135,59 @@ export const updateTask = async (req, res, next) => {
       },
     });
     res.status(200).json({ success: true, data: task });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Reorder a task (Drag and Drop)
+// @route   PATCH /api/tasks/:taskId/reorder
+// @access  Private
+export const reorderTask = async (req, res, next) => {
+  try {
+    const { taskId } = req.params;
+    const { status, prevTaskId, nextTaskId } = req.body;
+    const task = await prisma.task.findUnique({ where: { id: taskId } });
+    if (!task) {
+      return res.status(404).json({ success: false, error: "Task not found" });
+    }
+    let newListOrder;
+    // SCENARIO 1: Moved to the very top of a column
+    if (!prevTaskId && nextTaskId) {
+      const task = await prisma.task.findUnique({ where: { id: nextTaskId } });
+      newListOrder = task.listOrder / 2;
+    }
+    // SCENARIO 2: Moved to the very bottom of a column
+    else if (prevTaskId && !nextTaskId) {
+      const task = await prisma.task.findUnique({ where: { id: prevTaskId } });
+      newListOrder = task.listOrder + 65536;
+    }
+    // SCENARIO 3: Moved exactly between two tasks
+    else if (prevTaskId && nextTaskId) {
+      const prevTask = await prisma.task.findUnique({
+        where: { id: prevTaskId },
+      });
+      const nextTask = await prisma.task.findUnique({
+        where: { id: nextTaskId },
+      });
+      newListOrder = (prevTask.listOrder + nextTask.listOrder) / 2;
+    }
+    // SCENARIO 4: Moved to an empty column
+    else {
+      newListOrder = 65536;
+    }
+    const updatedTask = await prisma.task.update({
+      where: { id: taskId },
+      data: {
+        status: status || task.status,
+        listOrder: newListOrder,
+      },
+    });
+    // INVALIDATE CACHE: The board has changed, clear the Redis cache for this project
+    const cacheKey = `tasks:project:${task.projectId}`;
+    await redisClient.del(cacheKey);
+
+    res.status(200).json({ success: true, data: updatedTask });
   } catch (error) {
     next(error);
   }
