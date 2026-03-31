@@ -95,7 +95,7 @@ export const getTasks = async (req, res, next) => {
     // If not in cache, hit the database
     const whereClause = { projectId };
     if (sprintId) whereClause.sprintId = sprintId;
-    if (status !== undefined) whereClause.status = status;
+    if (status) whereClause.status = status;
     const tasks = await prisma.task.findMany({
       where: whereClause,
       orderBy: { listOrder: "asc" },
@@ -154,13 +154,23 @@ export const reorderTask = async (req, res, next) => {
     let newListOrder;
     // SCENARIO 1: Moved to the very top of a column
     if (!prevTaskId && nextTaskId) {
-      const task = await prisma.task.findUnique({ where: { id: nextTaskId } });
-      newListOrder = task.listOrder / 2;
+      const nextTask = await prisma.task.findUnique({ where: { id: nextTaskId } });
+      if (!nextTask) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Next task not found" });
+      }
+      newListOrder = nextTask.listOrder / 2;
     }
     // SCENARIO 2: Moved to the very bottom of a column
     else if (prevTaskId && !nextTaskId) {
-      const task = await prisma.task.findUnique({ where: { id: prevTaskId } });
-      newListOrder = task.listOrder + 65536;
+      const prevTask = await prisma.task.findUnique({ where: { id: prevTaskId } });
+      if (!prevTask) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Previous task not found" });
+      }
+      newListOrder = prevTask.listOrder + 65536;
     }
     // SCENARIO 3: Moved exactly between two tasks
     else if (prevTaskId && nextTaskId) {
@@ -170,6 +180,16 @@ export const reorderTask = async (req, res, next) => {
       const nextTask = await prisma.task.findUnique({
         where: { id: nextTaskId },
       });
+      if (!prevTask) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Previous task not found" });
+      }
+      if (!nextTask) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Next task not found" });
+      }
       newListOrder = (prevTask.listOrder + nextTask.listOrder) / 2;
     }
     // SCENARIO 4: Moved to an empty column
