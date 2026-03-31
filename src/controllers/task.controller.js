@@ -154,7 +154,7 @@ export const updateTask = async (req, res, next) => {
     delete updates.projectId;
     delete updates.reporterId;
     delete updates.listOrder;
-    const task = await prisma.task.findUnique({
+    const task = await prisma.task.update({
       where: { id: taskId },
       data: {
         updates,
