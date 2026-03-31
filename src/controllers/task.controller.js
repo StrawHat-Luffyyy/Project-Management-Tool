@@ -94,7 +94,7 @@ export const getTasks = async (req, res, next) => {
     };
     if (sprintId) whereClause.sprintId = sprintId;
     if (assigneeId) whereClause.assigneeId = assigneeId;
-    if (status) whereClause.status = status;
+    if (status !== undefined) whereClause.status = status;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
