@@ -3,6 +3,8 @@ import cors from "cors";
 import morgan from "morgan";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
+import { path } from "path";
+import { fileURLToPath } from "url";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
 //Import Routes
@@ -13,16 +15,20 @@ import sprintRoutes from "./routes/sprint.routes.js";
 import taskRoutes from "./routes/task.route.js";
 
 const app = express();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 app.use(
   cors({
     origin: "http://localhost:3000",
     credentials: true,
   }),
 );
+app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(cookieParser());
-app.use(helmet());
+
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 app.get("/health", (req, res) => {
   res.status(200).json({
