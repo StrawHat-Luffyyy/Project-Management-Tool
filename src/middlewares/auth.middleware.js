@@ -7,14 +7,12 @@ export const protect = async (req, res, next) => {
     token = req.cookies.token;
   }
   if (!token) {
-    res.status(401).json({ message: "Not authorized, no token" });
+    return res.status(401).json({ message: "Not authorized, no token" });
   }
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await prisma.user.findUnique({
-      where: {
-        id: decoded.id,
-      },
+      where: { id: decoded.id },
       select: {
         id: true,
         name: true,
@@ -23,11 +21,11 @@ export const protect = async (req, res, next) => {
       },
     });
     if (!user) {
-      res.status(401).json({ message: "Not authorized, invalid token" });
+      return res.status(401).json({ message: "Not authorized, invalid token" }); // ✅ FIX
     }
     req.user = user;
     next();
   } catch (error) {
-    res.status(401).json({ message: "Not authorized, token failed" });
+    return res.status(401).json({ message: "Not authorized, token failed" }); // ✅ FIX
   }
 };

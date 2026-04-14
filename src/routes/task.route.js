@@ -8,7 +8,7 @@ import {
 import {
   getComments,
   addComment,
-  uploadAttchment,
+ uploadAttachment,
 } from "../controllers/issueMeta.controller.js";
 import { protect } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/upload.middleware.js";

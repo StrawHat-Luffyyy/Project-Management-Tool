@@ -86,6 +86,10 @@ export const getTasks = async (req, res, next) => {
     // Define a unique cache key for this exact query
     const cacheKey = `tasks:project:${projectId}${sprintId ? `:sprint:${sprintId}` : ""}`;
     // Check Redis First
+    if (!redisClient.isOpen) {
+      console.log("Redis not connected. Connecting...");
+      await redisClient.connect();
+    }
     const cachedTasks = await redisClient.get(cacheKey);
     if (cachedTasks) {
       console.log("Serving from Redis Cache for key:", cacheKey);
@@ -154,7 +158,9 @@ export const reorderTask = async (req, res, next) => {
     let newListOrder;
     // SCENARIO 1: Moved to the very top of a column
     if (!prevTaskId && nextTaskId) {
-      const nextTask = await prisma.task.findUnique({ where: { id: nextTaskId } });
+      const nextTask = await prisma.task.findUnique({
+        where: { id: nextTaskId },
+      });
       if (!nextTask) {
         return res
           .status(404)
@@ -164,7 +170,9 @@ export const reorderTask = async (req, res, next) => {
     }
     // SCENARIO 2: Moved to the very bottom of a column
     else if (prevTaskId && !nextTaskId) {
-      const prevTask = await prisma.task.findUnique({ where: { id: prevTaskId } });
+      const prevTask = await prisma.task.findUnique({
+        where: { id: prevTaskId },
+      });
       if (!prevTask) {
         return res
           .status(404)

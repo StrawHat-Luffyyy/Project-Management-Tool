@@ -3,7 +3,7 @@ import cors from "cors";
 import morgan from "morgan";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
-import { path } from "path";
+import  path  from "path";
 import { fileURLToPath } from "url";
 import { errorHandler } from "./middlewares/errorHandler.js";
 

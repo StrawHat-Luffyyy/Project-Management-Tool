@@ -70,7 +70,7 @@ export const getComments = async (req, res, next) => {
 // @desc    Upload an attachment to a task
 // @route   POST /api/tasks/:taskId/attachments
 // @access  Private
-export const uploadAttchment = async (req, res, next) => {
+export const uploadAttachment = async (req, res, next) => {
   try {
     const { taskId } = req.params;
     if (!req.file) {
